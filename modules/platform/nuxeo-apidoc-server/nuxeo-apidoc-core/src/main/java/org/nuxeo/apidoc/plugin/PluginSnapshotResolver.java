@@ -48,7 +48,7 @@ public class PluginSnapshotResolver extends StdTypeResolverBuilder {
     }
 
     public boolean useForType(JavaType t) {
-        return t.isJavaLangObject();
+        return t.isTypeOrSubTypeOf(PluginSnapshot.class);
     }
 
 }

@@ -205,7 +205,6 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
                                   .addAbstractTypeMapping(ServiceInfo.class, ServiceInfoImpl.class)
                                   .addAbstractTypeMapping(DocumentationItem.class, ResourceDocumentationItem.class));
         mapper.addMixIn(OperationDocumentation.Param.class, OperationDocParamMixin.class);
-        //mapper.addMixIn(Object.class, PluginSnapshot.class);
         return mapper;
     }
 
