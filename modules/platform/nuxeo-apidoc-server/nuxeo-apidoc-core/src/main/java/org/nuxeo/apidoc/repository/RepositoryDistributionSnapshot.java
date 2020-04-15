@@ -468,10 +468,11 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
                                              .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
                                              .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
         // build runtime snapshot to be able to serialize it, also converting bundles to BundleInfoImpl
-        List<BundleInfo> bundles = getBundles();
+        List<String> bundleIds = getBundleIds();
         List<BundleInfo> convertedBundles = new ArrayList<>();
-        if (bundles != null) {
-            bundles.forEach(bundle -> {
+        if (bundleIds != null) {
+            bundleIds.forEach(bundleId -> {
+                BundleInfo bundle = getBundle(bundleId);
                 BundleInfoImpl newBundle = new BundleInfoImpl(bundle.getId());
                 newBundle.setArtifactId(bundle.getArtifactId());
                 newBundle.setArtifactVersion(bundle.getArtifactVersion());
@@ -483,7 +484,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
                 newBundle.setManifest(bundle.getManifest());
                 newBundle.setParentLiveDoc(bundle.getParentLiveDoc());
                 newBundle.setRequirements(bundle.getRequirements());
-                // TODO: compute components...
+                // FIXME: compute components...
                 convertedBundles.add(newBundle);
             });
         }

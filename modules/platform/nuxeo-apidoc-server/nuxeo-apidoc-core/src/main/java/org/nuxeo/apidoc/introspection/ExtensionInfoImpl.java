@@ -68,9 +68,13 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
 
     @JsonCreator
     private ExtensionInfoImpl(@JsonProperty("component") ComponentInfo component,
-            @JsonProperty("extensionPoint") String xpoint, @JsonProperty("index") int index, @JsonProperty("documentation") String documentation,  @JsonProperty("xml") String xml,  @JsonProperty("documentation")  ) {
+            @JsonProperty("extensionPoint") String xpoint, @JsonProperty("index") int index,
+            @JsonProperty("documentation") String documentation, @JsonProperty("xml") String xml,
+            @JsonProperty("targetComponentName") ComponentName targetComponentName) {
         this(component, xpoint, index);
-
+        this.documentation = documentation;
+        this.xml = xml;
+        this.targetComponentName = targetComponentName;
     }
 
     @Override
@@ -106,6 +110,7 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
         this.targetComponentName = targetComponentName;
     }
 
+    @JsonIgnore
     public Object[] getContribution() {
         return contribution;
     }

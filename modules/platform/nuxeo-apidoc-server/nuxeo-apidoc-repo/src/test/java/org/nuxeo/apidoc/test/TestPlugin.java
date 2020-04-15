@@ -109,7 +109,7 @@ public class TestPlugin {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         snapshot.writeJson(out);
 
-        // XXX
+        // FIXME
         try (OutputStream file = Files.newOutputStream(Paths.get(FeaturesRunner.getBuildDirectory() + "/test.json"),
                 StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             file.write(out.toByteArray());

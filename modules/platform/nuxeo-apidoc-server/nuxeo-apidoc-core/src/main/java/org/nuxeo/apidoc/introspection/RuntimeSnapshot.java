@@ -615,7 +615,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         return Collections.unmodifiableMap(pluginSnapshots);
     }
 
-    @Override
     public List<BundleInfo> getBundles() {
         return Collections.unmodifiableList(new ArrayList<>(bundles.values()));
     }

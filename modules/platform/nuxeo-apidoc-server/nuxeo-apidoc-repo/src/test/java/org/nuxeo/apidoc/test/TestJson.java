@@ -126,7 +126,7 @@ public class TestJson {
             Collection<ComponentInfo> components = bundle.getComponents();
             assertNotNull(components);
 
-            // XXX: components export is broken
+            // FIXME: components export is broken
             assertEquals(0, components.size());
 
         }

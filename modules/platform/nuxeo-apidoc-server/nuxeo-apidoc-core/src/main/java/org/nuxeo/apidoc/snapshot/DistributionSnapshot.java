@@ -42,7 +42,9 @@ import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.introspection.ServiceInfoImpl;
 import org.nuxeo.apidoc.plugin.PluginSnapshot;
 import org.nuxeo.ecm.automation.OperationDocumentation;
+import org.nuxeo.runtime.model.ComponentName;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -207,6 +209,12 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
         abstract @JsonProperty("isRequired") String isRequired();
     }
 
+    static abstract class ComponentNameMixin {
+        @JsonCreator
+        public ComponentNameMixin(@JsonProperty("rawName") String rawName) {
+        }
+    }
+
     static ObjectMapper jsonMapper() {
         final ObjectMapper mapper = new ObjectMapper().registerModule(
                 new SimpleModule().addAbstractTypeMapping(DistributionSnapshot.class, RuntimeSnapshot.class)
@@ -218,6 +226,7 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
                                   .addAbstractTypeMapping(ServiceInfo.class, ServiceInfoImpl.class)
                                   .addAbstractTypeMapping(DocumentationItem.class, ResourceDocumentationItem.class));
         mapper.addMixIn(OperationDocumentation.Param.class, OperationDocParamMixin.class);
+        mapper.addMixIn(ComponentName.class, ComponentNameMixin.class);
         return mapper;
     }
 
