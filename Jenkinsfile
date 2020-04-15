@@ -608,6 +608,14 @@ pipeline {
     }
 
     stage('Upload Nuxeo Packages') {
+      when {
+        not {
+          expression {
+             // only run Upload Nuxeo Packages in jenkins production
+             return JENKINS_URL =~ 'platform-staging'
+          }
+        }
+      }
       steps {
         setGitHubBuildStatus('platform/upload/packages', 'Upload Nuxeo Packages', 'PENDING')
         container('maven') {
