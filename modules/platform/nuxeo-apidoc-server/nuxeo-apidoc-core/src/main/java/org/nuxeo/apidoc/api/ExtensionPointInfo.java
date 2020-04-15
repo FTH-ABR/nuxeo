@@ -21,8 +21,13 @@ package org.nuxeo.apidoc.api;
 
 import java.util.Collection;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
+//@JsonIdentityInfo(generator = ObjectIdGenerators.StringIdGenerator.class)
 public interface ExtensionPointInfo extends NuxeoArtifact {
 
     String TYPE_NAME = "NXExtensionPoint";
@@ -36,7 +41,8 @@ public interface ExtensionPointInfo extends NuxeoArtifact {
     /** misnamed in schema */
     String PROP_DESCRIPTORS = "nxextensionpoint:extensionPoint";
 
-    @JsonManagedReference("point")
+    //@JsonIdentityReference
+    @JsonBackReference("extensionpoint")
     ComponentInfo getComponent();
 
     String getComponentId();
@@ -45,6 +51,7 @@ public interface ExtensionPointInfo extends NuxeoArtifact {
 
     String[] getDescriptors();
 
+    @JsonIgnore
     Collection<ExtensionInfo> getExtensions();
 
     String getDocumentation();

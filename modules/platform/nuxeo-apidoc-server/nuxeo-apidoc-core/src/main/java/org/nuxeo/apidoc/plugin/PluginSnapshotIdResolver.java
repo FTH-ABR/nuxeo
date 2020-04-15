@@ -51,7 +51,7 @@ public class PluginSnapshotIdResolver extends TypeIdResolverBase {
         return JsonTypeInfo.Id.CUSTOM;
     }
 
-    private String getId(Object value) {
+    protected String getId(Object value) {
         if (value instanceof PluginSnapshot<?>) {
             return ((PluginSnapshot<?>) value).getPluginId();
         }

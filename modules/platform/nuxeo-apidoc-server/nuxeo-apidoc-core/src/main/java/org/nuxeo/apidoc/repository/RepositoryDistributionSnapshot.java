@@ -18,6 +18,9 @@
  */
 package org.nuxeo.apidoc.repository;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -40,7 +43,8 @@ import org.nuxeo.apidoc.api.OperationInfo;
 import org.nuxeo.apidoc.api.QueryHelper;
 import org.nuxeo.apidoc.api.ServiceInfo;
 import org.nuxeo.apidoc.documentation.JavaDocHelper;
-import org.nuxeo.apidoc.introspection.ServerInfo;
+import org.nuxeo.apidoc.introspection.BundleInfoImpl;
+import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.plugin.Plugin;
 import org.nuxeo.apidoc.plugin.PluginSnapshot;
 import org.nuxeo.apidoc.snapshot.DistributionSnapshot;
@@ -186,6 +190,11 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
             }
         }
         return grps;
+    }
+
+    @Override
+    public List<BundleInfo> getBundles() {
+        return getChildren(BundleInfo.class, BundleInfo.TYPE_NAME);
     }
 
     @Override
@@ -439,11 +448,6 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
         return Boolean.TRUE.equals(doc.getPropertyValue(PROP_HIDE));
     }
 
-    @Override
-    public ServerInfo getServerInfo() {
-        throw new UnsupportedOperationException();
-    }
-
     protected List<Plugin<?>> getPlugins() {
         return Framework.getService(SnapshotManager.class).getPlugins();
     }
@@ -452,25 +456,57 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public ObjectMapper getJsonMapper() {
         ObjectMapper mapper = DistributionSnapshot.jsonMapper();
         for (Plugin<?> plugin : getPlugins()) {
-            mapper = plugin.getJsonMapper(mapper);
+            plugin.enrishJsonMapper(mapper);
         }
         return mapper;
     }
 
     @Override
-    public ObjectWriter getJsonWriter() {
-        return getJsonMapper().writerFor(RepositoryDistributionSnapshot.class)
-                              .withoutRootName()
-                              .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
-                              .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    public void writeJson(OutputStream out) {
+        ObjectWriter writer = getJsonMapper().writerFor(DistributionSnapshot.class)
+                                             .withoutRootName()
+                                             .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
+                                             .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+        // build runtime snapshot to be able to serialize it, also converting bundles to BundleInfoImpl
+        List<BundleInfo> bundles = getBundles();
+        List<BundleInfo> convertedBundles = new ArrayList<>();
+        if (bundles != null) {
+            bundles.forEach(bundle -> {
+                BundleInfoImpl newBundle = new BundleInfoImpl(bundle.getId());
+                newBundle.setArtifactId(bundle.getArtifactId());
+                newBundle.setArtifactVersion(bundle.getArtifactVersion());
+                newBundle.setBundleGroup(null); // no bundle group on repo items
+                newBundle.setFileName(bundle.getFileName());
+                newBundle.setGroupId(bundle.getGroupId());
+                newBundle.setLiveDoc(bundle.getLiveDoc());
+                newBundle.setLocation(bundle.getLocation());
+                newBundle.setManifest(bundle.getManifest());
+                newBundle.setParentLiveDoc(bundle.getParentLiveDoc());
+                newBundle.setRequirements(bundle.getRequirements());
+                // TODO: compute components...
+                convertedBundles.add(newBundle);
+            });
+        }
+        RuntimeSnapshot snap = new RuntimeSnapshot(getName(), getVersion(), getCreationDate(), getReleaseDate(),
+                convertedBundles, getSpi(), getOperations(), getPluginSnapshots());
+        try {
+            writer.writeValue(out, snap);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public ObjectReader getJsonReader() {
-        return getJsonMapper().readerFor(RepositoryDistributionSnapshot.class)
-                              .withoutRootName()
-                              .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
-                              .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
+    public DistributionSnapshot readJson(InputStream in) {
+        ObjectReader reader = getJsonMapper().readerFor(DistributionSnapshot.class)
+                                             .withoutRootName()
+                                             .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
+                                             .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
+        try {
+            return reader.readValue(in);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

@@ -16,6 +16,9 @@
  */
 package org.nuxeo.apidoc.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,12 +26,18 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collection;
 
-import org.assertj.core.api.Assertions;
+import javax.inject.Inject;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.nuxeo.apidoc.api.BundleInfo;
+import org.nuxeo.apidoc.api.ComponentInfo;
 import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.snapshot.DistributionSnapshot;
+import org.nuxeo.apidoc.snapshot.SnapshotManager;
+import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 
@@ -39,20 +48,87 @@ import org.nuxeo.runtime.test.runner.FeaturesRunner;
 @Features(RuntimeSnaphotRepoFeature.class)
 public class TestJson {
 
+    @Inject
+    protected CoreSession session;
+
+    @Inject
+    protected SnapshotManager snapshotManager;
+
     @Test
-    public void canSerializeAndReadBack() throws IOException {
+    public void canSerializeRuntimeAndReadBack() throws IOException {
+        DistributionSnapshot snapshot = RuntimeSnapshot.build();
+        assertNotNull(snapshot);
+        canSerializeAndReadBack(snapshot);
+    }
+
+    @Test
+    public void canSerializeRepositoryAndReadBack() throws IOException {
+        DistributionSnapshot snapshot = snapshotManager.persistRuntimeSnapshot(session);
+        assertNotNull(snapshot);
+        canSerializeAndReadBack(snapshot);
+    }
+
+    protected void canSerializeAndReadBack(DistributionSnapshot snap) throws IOException {
         try (ByteArrayOutputStream sink = new ByteArrayOutputStream()) {
-            RuntimeSnapshot snap = RuntimeSnapshot.build();
-            snap.getJsonWriter().writeValue(sink, snap);
+            snap.writeJson(sink);
             try (OutputStream file = Files.newOutputStream(Paths.get(FeaturesRunner.getBuildDirectory() + "/test.json"),
                     StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
                 file.write(sink.toByteArray());
             }
             try (ByteArrayInputStream source = new ByteArrayInputStream(sink.toByteArray())) {
-                DistributionSnapshot snapshot = snap.getJsonReader().readValue(source);
-                Assertions.assertThat(snapshot).isNotNull();
-                Assertions.assertThat(snapshot.getBundle("org.nuxeo.apidoc.repo")).isNotNull();
+                DistributionSnapshot snapshot = snap.readJson(source);
+                assertNotNull(snapshot);
+                assertNotNull(snapshot.getBundle("org.nuxeo.apidoc.repo"));
             }
+        }
+    }
+
+    /**
+     * Reads a reference export kept in tests, to detect potential compatibility changes.
+     *
+     * @since 11.1
+     */
+    @Test
+    public void canReadLegacy() throws IOException {
+        RuntimeSnapshot snap = RuntimeSnapshot.build();
+        String export = TestSnapshotPersist.getReferenceContent(
+                TestSnapshotPersist.getReferencePath("test-export.json"));
+        try (ByteArrayInputStream source = new ByteArrayInputStream(export.getBytes())) {
+            DistributionSnapshot snapshot = snap.readJson(source);
+            assertNotNull(snapshot);
+
+            BundleInfo bundle = snapshot.getBundle("org.nuxeo.apidoc.repo");
+            assertNotNull(bundle);
+            assertEquals("nuxeo-apidoc-repo", bundle.getArtifactId());
+            assertEquals(BundleInfo.TYPE_NAME, bundle.getArtifactType());
+            assertEquals("11.1-SNAPSHOT", bundle.getArtifactVersion());
+            assertEquals("org.nuxeo.apidoc.repo", bundle.getBundleId());
+            assertEquals("org.nuxeo.ecm.platform", bundle.getGroupId());
+            assertEquals("/grp:org.nuxeo.ecm.platform/org.nuxeo.apidoc.repo", bundle.getHierarchyPath());
+            assertEquals("org.nuxeo.apidoc.repo", bundle.getId());
+            assertEquals("/home/anahide/ws/nuxeo/modules/platform/nuxeo-apidoc-server/nuxeo-apidoc-repo/bin/main",
+                    bundle.getLocation());
+            assertEquals("Manifest-Version: 1.0\n" //
+                    + "Bundle-ManifestVersion: 1\n" //
+                    + "Bundle-Name: nuxeo api documentation repository\n" //
+                    + "Bundle-SymbolicName: org.nuxeo.apidoc.repo;singleton:=true\n" //
+                    + "Bundle-Version: 0.0.1\n" //
+                    + "Bundle-Vendor: Nuxeo\n" //
+                    + "Nuxeo-Component: OSGI-INF/schema-contrib.xml,\n" //
+                    + "  OSGI-INF/doctype-contrib.xml,\n" + "  OSGI-INF/life-cycle-contrib.xml,\n" //
+                    + "  OSGI-INF/snapshot-service-framework.xml,\n" //
+                    + "  OSGI-INF/documentation-service-framework.xml,\n" //
+                    + "  OSGI-INF/adapter-contrib.xml,\n" //
+                    + "  OSGI-INF/directories-contrib.xml,\n" //
+                    + "  OSGI-INF/listener-contrib.xml\n"//
+                    + "", bundle.getManifest());
+            // retrieve one sample of each contribution
+            Collection<ComponentInfo> components = bundle.getComponents();
+            assertNotNull(components);
+
+            // XXX: components export is broken
+            assertEquals(0, components.size());
+
         }
     }
 

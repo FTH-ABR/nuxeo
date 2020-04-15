@@ -27,9 +27,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -42,9 +44,13 @@ import org.nuxeo.apidoc.api.BundleInfo;
 import org.nuxeo.apidoc.api.ComponentInfo;
 import org.nuxeo.apidoc.api.ExtensionInfo;
 import org.nuxeo.apidoc.api.ExtensionPointInfo;
+import org.nuxeo.apidoc.api.NuxeoArtifact;
 import org.nuxeo.apidoc.api.ServiceInfo;
 import org.nuxeo.apidoc.documentation.DocumentationHelper;
 import org.nuxeo.common.utils.Path;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ComponentInfoImpl extends BaseNuxeoArtifact implements ComponentInfo {
 
@@ -52,13 +58,13 @@ public class ComponentInfoImpl extends BaseNuxeoArtifact implements ComponentInf
 
     protected final String name;
 
-    protected final Map<String, ExtensionPointInfo> extensionPoints;
-
-    protected final Collection<ExtensionInfo> extensions;
+    protected final Map<String, ExtensionPointInfo> extensionPoints = new HashMap<>();
 
     protected final List<String> serviceNames = new ArrayList<>();
 
     protected final List<ServiceInfo> services = new ArrayList<>();
+
+    protected final Collection<ExtensionInfo> extensions = new ArrayList<>();
 
     protected URL xmlFileUrl;
 
@@ -71,8 +77,30 @@ public class ComponentInfoImpl extends BaseNuxeoArtifact implements ComponentInf
     public ComponentInfoImpl(BundleInfo bundleInfo, String name) {
         bundle = bundleInfo;
         this.name = name;
-        extensionPoints = new HashMap<>();
-        extensions = new ArrayList<>();
+    }
+
+    @JsonCreator
+    private ComponentInfoImpl(@JsonProperty("bundle") BundleInfo bundle, @JsonProperty("name") String name,
+            @JsonProperty("extensionPoints") Collection<ExtensionPointInfo> extensionPoints,
+            @JsonProperty("services") List<ServiceInfo> services,
+            @JsonProperty("extensions") Collection<ExtensionInfo> extensions,
+            @JsonProperty("componentClass") String componentClass,
+            @JsonProperty("documentation") String documentation) {
+        this.bundle = bundle;
+        this.name = name;
+        if (extensionPoints != null) {
+            this.extensionPoints.putAll(
+                    extensionPoints.stream().collect(Collectors.toMap(ExtensionPointInfo::getId, ep -> ep)));
+        }
+        if (services != null) {
+            this.services.addAll(services);
+            this.serviceNames.addAll(services.stream().map(NuxeoArtifact::getId).collect(Collectors.toList()));
+        }
+        if (extensions != null) {
+            this.extensions.addAll(extensions);
+        }
+        this.componentClass = componentClass;
+        this.documentation = documentation;
     }
 
     @Override
@@ -210,7 +238,7 @@ public class ComponentInfoImpl extends BaseNuxeoArtifact implements ComponentInf
 
     @Override
     public String getId() {
-        return name;
+        return getName();
     }
 
     @Override
@@ -225,7 +253,7 @@ public class ComponentInfoImpl extends BaseNuxeoArtifact implements ComponentInf
 
     @Override
     public List<ServiceInfo> getServices() {
-        return services;
+        return Collections.unmodifiableList(services);
     }
 
     @Override

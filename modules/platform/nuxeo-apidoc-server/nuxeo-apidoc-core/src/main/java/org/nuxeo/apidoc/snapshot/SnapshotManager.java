@@ -35,12 +35,6 @@ import org.nuxeo.ecm.core.api.DocumentModel;
 public interface SnapshotManager {
 
     /**
-     * @deprecated since 11.1, use {@link #initWebContext(HttpServletRequest)} instead
-     */
-    @Deprecated
-    void initSeamContext(HttpServletRequest request);
-
-    /**
      * Initializes the web context, as potentially needed by plugins.
      *
      * @since 11.1

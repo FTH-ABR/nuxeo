@@ -157,12 +157,12 @@ public class BundleInfoDocAdapter extends BaseNuxeoArtifactDocAdapter implements
 
     @Override
     public Map<String, ResourceDocumentationItem> getLiveDoc() {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
     public Map<String, ResourceDocumentationItem> getParentLiveDoc() {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
 }

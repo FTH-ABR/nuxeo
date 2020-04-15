@@ -24,8 +24,12 @@ import java.util.List;
 import org.nuxeo.apidoc.documentation.ContributionItem;
 import org.nuxeo.runtime.model.ComponentName;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
+//@JsonIdentityInfo(generator = ObjectIdGenerators.StringIdGenerator.class)
 public interface ExtensionInfo extends NuxeoArtifact {
 
     String TYPE_NAME = "NXContribution";
@@ -50,7 +54,8 @@ public interface ExtensionInfo extends NuxeoArtifact {
 
     List<ContributionItem> getContributionItems();
 
-    @JsonManagedReference("extension")
+    //@JsonIdentityReference
+    @JsonBackReference("extension")
     ComponentInfo getComponent();
 
 }

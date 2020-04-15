@@ -73,8 +73,8 @@ public abstract class AbstractPlugin<T extends NuxeoArtifact> implements Plugin<
     }
 
     @Override
-    public ObjectMapper getJsonMapper(ObjectMapper parent) {
-        return parent;
+    public void enrishJsonMapper(ObjectMapper parent) {
+        // NOOP
     }
 
     protected DocumentModel getOrCreateSubRoot(CoreSession session, DocumentModel root, String name) {

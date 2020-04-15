@@ -47,7 +47,7 @@ public class PluginSnapshotResolver extends StdTypeResolverBuilder {
         return useForType(baseType) ? super.buildTypeDeserializer(config, baseType, subtypes) : null;
     }
 
-    public boolean useForType(JavaType t) {
+    protected boolean useForType(JavaType t) {
         return t.isTypeOrSubTypeOf(PluginSnapshot.class);
     }
 

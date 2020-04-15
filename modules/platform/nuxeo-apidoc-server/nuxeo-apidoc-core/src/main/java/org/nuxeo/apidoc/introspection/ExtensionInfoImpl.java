@@ -34,17 +34,17 @@ import org.nuxeo.apidoc.documentation.DocumentationHelper;
 import org.nuxeo.apidoc.documentation.XMLContributionParser;
 import org.nuxeo.runtime.model.ComponentName;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreType
 public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInfo {
 
     protected static final Log log = LogFactory.getLog(ExtensionInfoImpl.class);
 
     protected final String id;
 
-    protected final ComponentInfoImpl component;
+    protected final ComponentInfo component;
 
     protected final String extensionPoint;
 
@@ -56,7 +56,7 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
 
     protected Object[] contribution;
 
-    public ExtensionInfoImpl(ComponentInfoImpl component, String xpoint, int index) {
+    public ExtensionInfoImpl(ComponentInfo component, String xpoint, int index) {
         String idd = component.getId() + "--" + xpoint;
         if (index > 0) {
             idd += index;
@@ -64,6 +64,13 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
         id = idd;
         this.component = component;
         extensionPoint = xpoint;
+    }
+
+    @JsonCreator
+    private ExtensionInfoImpl(@JsonProperty("component") ComponentInfo component,
+            @JsonProperty("extensionPoint") String xpoint, @JsonProperty("index") int index, @JsonProperty("documentation") String documentation,  @JsonProperty("xml") String xml,  @JsonProperty("documentation")  ) {
+        this(component, xpoint, index);
+
     }
 
     @Override
@@ -99,7 +106,6 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
         this.targetComponentName = targetComponentName;
     }
 
-    @JsonIgnore
     public Object[] getContribution() {
         return contribution;
     }

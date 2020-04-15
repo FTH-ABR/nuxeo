@@ -52,13 +52,8 @@ public class FakePlugin extends AbstractPlugin<FakeNuxeoArtifact> {
     }
 
     @Override
-    public ObjectMapper getJsonMapper(ObjectMapper parent) {
-        // parent.registerModule(new SimpleModule().addAbstractTypeMapping(FakePlugin.class, FakePlugin.class)
-        // .addAbstractTypeMapping(FakePluginRuntimeSnapshot.class,
-        // FakePluginRuntimeSnapshot.class)
-        // .addAbstractTypeMapping(NuxeoArtifact.class, FakeNuxeoArtifact.class));
+    public void enrishJsonMapper(ObjectMapper parent) {
         parent.registerModule(new SimpleModule().addAbstractTypeMapping(NuxeoArtifact.class, FakeNuxeoArtifact.class));
-        return parent;
     }
 
     @Override

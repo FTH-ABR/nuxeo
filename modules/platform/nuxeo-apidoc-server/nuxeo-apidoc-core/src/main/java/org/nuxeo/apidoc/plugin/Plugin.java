@@ -80,7 +80,7 @@ public interface Plugin<T extends NuxeoArtifact> {
     /**
      * Contributes to the parent object mapper, to handle serialization of local introspection.
      */
-    ObjectMapper getJsonMapper(ObjectMapper parent);
+    void enrishJsonMapper(ObjectMapper parent);
 
     /**
      * XXX

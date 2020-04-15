@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.annotation.JsonTypeResolver;
 @JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, include = JsonTypeInfo.As.PROPERTY, property = "@type")
 public interface PluginSnapshot<T extends NuxeoArtifact> {
 
+    @JsonIgnore // already mapped to "@type"
     String getPluginId();
 
     @JsonIgnore

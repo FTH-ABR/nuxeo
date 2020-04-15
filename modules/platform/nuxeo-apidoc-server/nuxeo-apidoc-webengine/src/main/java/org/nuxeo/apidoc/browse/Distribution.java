@@ -20,6 +20,7 @@ package org.nuxeo.apidoc.browse;
 
 import static org.nuxeo.apidoc.snapshot.DistributionSnapshot.PROP_RELEASED;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -83,6 +84,9 @@ import org.nuxeo.ecm.webengine.model.exceptions.WebResourceNotFoundException;
 import org.nuxeo.ecm.webengine.model.impl.ModuleRoot;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.transaction.TransactionHelper;
+
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 @Path("/distribution")
 // needed for 5.4.1
@@ -196,7 +200,6 @@ public class Distribution extends ModuleRoot {
         if ("adm".equals(distributionId)) {
             embeddedMode = Boolean.TRUE;
         } else {
-
             snaps.add(getSnapshotManager().getRuntimeSnapshot());
             distributionId = SnapshotResolverHelper.findBestMatch(snaps, distributionId);
         }
@@ -371,6 +374,18 @@ public class Distribution extends ModuleRoot {
             tx.commit();
         }
         return getView("saved");
+    }
+
+    @GET
+    @Path("json")
+    @Produces("application/json")
+    public Object getJson() throws JsonGenerationException, JsonMappingException, IOException {
+        // init potential resources depending on request
+        getSnapshotManager().initWebContext(getContext().getRequest());
+        DistributionSnapshot snap = getSnapshotManager().getRuntimeSnapshot();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        snap.writeJson(out);
+        return out.toString();
     }
 
     public String getDocumentationInfo() {

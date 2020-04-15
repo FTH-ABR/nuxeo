@@ -331,11 +331,6 @@ public class SnapshotManagerComponent extends DefaultComponent implements Snapsh
     }
 
     @Override
-    public void initSeamContext(HttpServletRequest request) {
-        initWebContext(request);
-    }
-
-    @Override
     public void initWebContext(HttpServletRequest request) {
         for (Plugin<?> plugin : getPlugins()) {
             plugin.initWebContext(getRuntimeSnapshot(), request);

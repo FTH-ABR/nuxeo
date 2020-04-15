@@ -23,18 +23,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.checkerframework.common.reflection.qual.GetConstructor;
 import org.nuxeo.apidoc.api.BaseNuxeoArtifact;
+import org.nuxeo.apidoc.api.ComponentInfo;
 import org.nuxeo.apidoc.api.ExtensionInfo;
 import org.nuxeo.apidoc.api.ExtensionPointInfo;
 import org.nuxeo.apidoc.api.VirtualNodesConsts;
 import org.nuxeo.apidoc.documentation.DocumentationHelper;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreType;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreType
 public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements ExtensionPointInfo {
 
-    protected final ComponentInfoImpl component;
+    @JsonBackReference("extensionpoint")
+    protected final ComponentInfo component;
 
     protected final String name;
 
@@ -51,8 +55,24 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
         this.component = component;
     }
 
+    @JsonCreator
+    private ExtensionPointInfoImpl(@JsonProperty("component") ComponentInfo component,
+            @JsonProperty("name") String name, @JsonProperty("extensions") Collection<ExtensionInfo> extensions,
+            @JsonProperty("descriptors") String[] descriptors, @JsonProperty("documentation") String documentation) {
+        this.component = component;
+        if (component == null) {
+            System.err.println("comp is null");
+        }
+        this.name = name;
+        if (extensions != null) {
+            this.extensions.addAll(extensions);
+        }
+        this.descriptors = descriptors;
+        this.documentation = documentation;
+    }
+
     @Override
-    public ComponentInfoImpl getComponent() {
+    public ComponentInfo getComponent() {
         return component;
     }
 
@@ -104,7 +124,9 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     @Override
     public String getId() {
-        return component.getId() + "--" + name;
+        // FIXME: this messes with the back reference
+        //return getComponentId() + "--" + getName();
+        return getName();
     }
 
     @Override
@@ -119,7 +141,7 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     @Override
     public String getLabel() {
-        return name + " (" + component.getId() + ")";
+        return getName() + " (" + getComponentId() + ")";
     }
 
     @Override

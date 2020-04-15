@@ -19,6 +19,8 @@
 package org.nuxeo.apidoc.snapshot;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +39,6 @@ import org.nuxeo.apidoc.introspection.ComponentInfoImpl;
 import org.nuxeo.apidoc.introspection.ExtensionInfoImpl;
 import org.nuxeo.apidoc.introspection.OperationInfoImpl;
 import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
-import org.nuxeo.apidoc.introspection.ServerInfo;
 import org.nuxeo.apidoc.introspection.ServiceInfoImpl;
 import org.nuxeo.apidoc.plugin.PluginSnapshot;
 import org.nuxeo.ecm.automation.OperationDocumentation;
@@ -89,36 +90,57 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
      */
     String PROP_RELEASED = "nxdistribution:released";
 
+    /**
+     * Returns a key, combining {@link #getName()} and {@link #getVersion()}.
+     */
     String getKey();
 
     void cleanPreviousArtifacts();
 
+    /**
+     * Returns the map of bundles by id.
+     * <p>
+     * This extra getter is particularly useful for json export/import.
+     *
+     * @since 11.1
+     */
+    List<BundleInfo> getBundles();
+
+    @JsonIgnore
     List<BundleGroup> getBundleGroups();
 
     BundleGroup getBundleGroup(String groupId);
 
+    @JsonIgnore
     List<String> getBundleIds();
 
     BundleInfo getBundle(String id);
 
+    @JsonIgnore
     List<String> getComponentIds();
 
+    @JsonIgnore
     List<String> getJavaComponentIds();
 
+    @JsonIgnore
     List<String> getXmlComponentIds();
 
     ComponentInfo getComponent(String id);
 
+    @JsonIgnore
     List<String> getServiceIds();
 
     ServiceInfo getService(String id);
 
+    @JsonIgnore
     List<String> getExtensionPointIds();
 
     ExtensionPointInfo getExtensionPoint(String id);
 
+    @JsonIgnore
     List<String> getContributionIds();
 
+    @JsonIgnore
     List<ExtensionInfo> getContributions();
 
     ExtensionInfo getContribution(String id);
@@ -144,17 +166,13 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
     /**
      * @since 8.3
      */
+    @JsonIgnore
     List<String> getAliases();
 
     /**
      * @since 8.3
      */
     boolean isHidden();
-
-    /**
-     * @since 8.3
-     */
-    ServerInfo getServerInfo();
 
     /**
      * Returns the Json mapper for reading/writing the snapshot in json format.
@@ -164,13 +182,44 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
     @JsonIgnore
     ObjectMapper getJsonMapper();
 
-    @JsonIgnore
-    ObjectWriter getJsonWriter();
+    /**
+     * Serializes in json the current instance.
+     *
+     * @since 11.1
+     */
+    void writeJson(OutputStream out);
 
-    @JsonIgnore
-    ObjectReader getJsonReader();
+    /**
+     * Reads the given json according to current json mapper (see {@link #getJsonMapper()}.
+     *
+     * @since 11.1
+     */
+    DistributionSnapshot readJson(InputStream in);
 
+    /**
+     * Returns a map of additional plugin resources.
+     *
+     * @since 11.1
+     */
     Map<String, PluginSnapshot<?>> getPluginSnapshots();
+
+    static abstract class OperationDocParamMixin {
+        abstract @JsonProperty("isRequired") String isRequired();
+    }
+
+    static ObjectMapper jsonMapper() {
+        final ObjectMapper mapper = new ObjectMapper().registerModule(
+                new SimpleModule().addAbstractTypeMapping(DistributionSnapshot.class, RuntimeSnapshot.class)
+                                  .addAbstractTypeMapping(BundleInfo.class, BundleInfoImpl.class)
+                                  .addAbstractTypeMapping(BundleGroup.class, BundleGroupImpl.class)
+                                  .addAbstractTypeMapping(ComponentInfo.class, ComponentInfoImpl.class)
+                                  .addAbstractTypeMapping(ExtensionInfo.class, ExtensionInfoImpl.class)
+                                  .addAbstractTypeMapping(OperationInfo.class, OperationInfoImpl.class)
+                                  .addAbstractTypeMapping(ServiceInfo.class, ServiceInfoImpl.class)
+                                  .addAbstractTypeMapping(DocumentationItem.class, ResourceDocumentationItem.class));
+        mapper.addMixIn(OperationDocumentation.Param.class, OperationDocParamMixin.class);
+        return mapper;
+    }
 
     /**
      * @deprecated since 11.1, use non-static @link #getJsonMapper()} to get the non-static writer handling plugins.
@@ -192,24 +241,6 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
                            .withoutRootName()
                            .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
                            .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
-    }
-
-    static ObjectMapper jsonMapper() {
-        final ObjectMapper mapper = new ObjectMapper().registerModule(
-                new SimpleModule().addAbstractTypeMapping(DistributionSnapshot.class, RuntimeSnapshot.class)
-                                  .addAbstractTypeMapping(BundleInfo.class, BundleInfoImpl.class)
-                                  .addAbstractTypeMapping(BundleGroup.class, BundleGroupImpl.class)
-                                  .addAbstractTypeMapping(ComponentInfo.class, ComponentInfoImpl.class)
-                                  .addAbstractTypeMapping(ExtensionInfo.class, ExtensionInfoImpl.class)
-                                  .addAbstractTypeMapping(OperationInfo.class, OperationInfoImpl.class)
-                                  .addAbstractTypeMapping(ServiceInfo.class, ServiceInfoImpl.class)
-                                  .addAbstractTypeMapping(DocumentationItem.class, ResourceDocumentationItem.class));
-        mapper.addMixIn(OperationDocumentation.Param.class, OperationDocParamMixin.class);
-        return mapper;
-    }
-
-    static abstract class OperationDocParamMixin {
-        abstract @JsonProperty("isRequired") String isRequired();
     }
 
 }

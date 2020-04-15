@@ -21,6 +21,8 @@ package org.nuxeo.apidoc.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -35,14 +37,11 @@ import org.nuxeo.apidoc.api.ExtensionInfo;
 import org.nuxeo.apidoc.api.ExtensionPointInfo;
 import org.nuxeo.apidoc.api.OperationInfo;
 import org.nuxeo.apidoc.api.ServiceInfo;
-import org.nuxeo.apidoc.introspection.ServerInfo;
 import org.nuxeo.apidoc.plugin.PluginSnapshot;
 import org.nuxeo.apidoc.snapshot.DistributionSnapshot;
 import org.nuxeo.apidoc.snapshot.SnapshotResolverHelper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.ObjectWriter;
 
 public class TestDistributionResolver {
 
@@ -189,6 +188,11 @@ public class TestDistributionResolver {
                 }
 
                 @Override
+                public List<BundleInfo> getBundles() {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
                 public List<BundleGroup> getBundleGroups() {
                     return null;
                 }
@@ -209,22 +213,17 @@ public class TestDistributionResolver {
                 }
 
                 @Override
-                public ServerInfo getServerInfo() {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
                 public ObjectMapper getJsonMapper() {
                     throw new UnsupportedOperationException();
                 }
 
                 @Override
-                public ObjectWriter getJsonWriter() {
+                public void writeJson(OutputStream out) {
                     throw new UnsupportedOperationException();
                 }
 
                 @Override
-                public ObjectReader getJsonReader() {
+                public DistributionSnapshot readJson(InputStream in) {
                     throw new UnsupportedOperationException();
                 }
 

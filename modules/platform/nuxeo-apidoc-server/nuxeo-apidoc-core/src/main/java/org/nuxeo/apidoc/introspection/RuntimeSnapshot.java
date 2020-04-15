@@ -18,11 +18,16 @@
  */
 package org.nuxeo.apidoc.introspection;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +57,6 @@ import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.runtime.api.Framework;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -65,11 +69,15 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
 
     public static final String VIRTUAL_BUNDLE_GROUP = "grp:org.nuxeo.misc";
 
-    protected ServerInfo serverInfo;
+    protected final Date created;
 
-    protected Date created;
+    protected final Date released;
 
-    protected final List<String> bundleIds = new ArrayList<>();
+    protected final String name;
+
+    protected final String version;
+
+    protected final Map<String, BundleInfo> bundles = new LinkedHashMap<>();
 
     protected final List<String> javaComponentsIds = new ArrayList<>();
 
@@ -77,9 +85,9 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
 
     protected final Map<String, String> services2Components = new HashMap<>();
 
-    protected final Map<String, ExtensionPointInfo> extensionPoints = new HashMap<>();
+    protected final Map<String, ExtensionPointInfo> extensionPoints = new LinkedHashMap<>();
 
-    protected final Map<String, ExtensionInfo> contributions = new HashMap<>();
+    protected final Map<String, ExtensionInfo> contributions = new LinkedHashMap<>();
 
     protected final Map<String, List<String>> mavenGroups = new HashMap<>();
 
@@ -99,56 +107,60 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
 
     protected final Map<String, PluginSnapshot<?>> pluginSnapshots = new HashMap<>();
 
+    protected final List<String> aliases = new LinkedList<>(Collections.singletonList("current"));
+
     public static RuntimeSnapshot build() {
         return new RuntimeSnapshot();
     }
 
     @JsonCreator
-    private RuntimeSnapshot(@JsonProperty("serverInfo") ServerInfo serverInfo,
-            @JsonProperty("creationDate") Date created, @JsonProperty("operations") List<OperationInfo> operations,
+    public RuntimeSnapshot(@JsonProperty("name") String name, @JsonProperty("version") String version,
+            @JsonProperty("creationDate") Date created, @JsonProperty("releaseDate") Date released,
+            @JsonProperty("bundles") List<BundleInfo> bundles, @JsonProperty("spi") List<Class<?>> spi,
+            @JsonProperty("operations") List<OperationInfo> operations,
             @JsonProperty("pluginSnapshots") Map<String, PluginSnapshot<?>> pluginSnapshots) {
-        this.serverInfo = serverInfo;
         this.created = created;
-        index();
-        this.operations.addAll(operations);
-        opsInitialized = true;
-        this.pluginSnapshots.putAll(pluginSnapshots);
+        this.released = released;
+        this.name = name;
+        this.version = version;
+        index(bundles);
+        if (spi != null) {
+            this.spi.addAll(spi);
+        }
+        if (operations != null) {
+            this.operations.addAll(operations);
+        }
+        this.opsInitialized = true;
+        if (pluginSnapshots != null) {
+            this.pluginSnapshots.putAll(pluginSnapshots);
+        }
+        this.pluginSnapshotsInitialized = true;
     }
 
     protected RuntimeSnapshot() {
-        serverInfo = ServerInfo.build();
         created = new Date();
-        index();
+        released = null;
+        ServerInfo serverInfo = ServerInfo.build();
+        this.name = serverInfo.getName();
+        this.version = serverInfo.getVersion();
+        index(new ArrayList<>(serverInfo.getBundles()));
+        this.spi.addAll(serverInfo.getAllSpi());
+        initOperations();
+        initPluginSnapshots();
     }
 
-    @Override
-    public ServerInfo getServerInfo() {
-        return serverInfo;
-    }
-
-    @Override
-    @JsonIgnore
-    public String getVersion() {
-        return serverInfo.getVersion();
-    }
-
-    @Override
-    @JsonIgnore
-    public String getName() {
-        return serverInfo.getName();
-    }
-
-    protected void index() {
-        spi.addAll(serverInfo.getAllSpi());
-        for (BundleInfo bInfo : serverInfo.getBundles()) {
-            bundleIds.add(bInfo.getId());
+    protected void index(List<BundleInfo> distributionBundles) {
+        if (distributionBundles == null) {
+            return;
+        }
+        for (BundleInfo bInfo : distributionBundles) {
+            bundles.put(bInfo.getId(), bInfo);
 
             String groupId = bInfo.getGroupId();
             if (groupId != null) {
                 groupId = "grp:" + groupId;
             }
             String artifactId = bInfo.getArtifactId();
-
             if (groupId == null || artifactId == null) {
                 groupId = VIRTUAL_BUNDLE_GROUP;
                 ((BundleInfoImpl) bInfo).setGroupId(groupId);
@@ -189,6 +201,7 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
                 }
             }
         }
+
         // post process bundle groups
         List<String> mvnGroupNames = new ArrayList<>();
         mvnGroupNames.addAll(mavenGroups.keySet());
@@ -196,21 +209,16 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         for (String mvnGroupName : mvnGroupNames) {
             List<String> artifactIds = mavenGroups.get(mvnGroupName);
             Collections.sort(artifactIds);
-
             List<String> subGroups = new ArrayList<>();
-
             for (String id : artifactIds) {
                 if (id.endsWith(".api")) {
                     String grp = "grp:" + id.substring(0, id.length() - 4);
-
                     if (grp.equals(mvnGroupName)) {
                         continue;
                     }
-
                     subGroups.add(grp);
                 }
             }
-
             if (subGroups.size() < 2) {
                 // no need to split the maven group into subGroups
             } else {
@@ -233,9 +241,10 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         }
 
         for (String grpId : mavenGroups.keySet()) {
-            BundleGroupImpl bGroup = buildBundleGroup(grpId, serverInfo.getVersion());
+            BundleGroupImpl bGroup = buildBundleGroup(grpId, version);
             bundleGroups.add(bGroup);
         }
+
     }
 
     protected BundleGroupImpl buildBundleGroup(String id, String version) {
@@ -247,8 +256,10 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
                 newGroup.addParent(bGroup.getId());
             } else {
                 bGroup.add(aid);
-                ((BundleInfoImpl) getBundle(aid)).setBundleGroup(bGroup);
                 BundleInfo bi = getBundle(aid);
+                if (bi instanceof BundleInfoImpl) {
+                    ((BundleInfoImpl) bi).setBundleGroup(bGroup);
+                }
                 bGroup.addLiveDoc(bi.getParentLiveDoc());
             }
         }
@@ -256,7 +267,16 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
+    public String getVersion() {
+        return version;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
     public List<BundleGroup> getBundleGroups() {
         return bundleGroups;
     }
@@ -287,25 +307,18 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public List<String> getBundleIds() {
-        List<String> bundlesIds = new ArrayList<>();
-
-        for (BundleInfo info : serverInfo.getBundles()) {
-            bundlesIds.add(info.getId());
-
-        }
+        List<String> bundlesIds = new ArrayList<>(bundles.keySet());
         Collections.sort(bundlesIds);
         return bundlesIds;
     }
 
     @Override
     public BundleInfo getBundle(String id) {
-        return serverInfo.getBundle(id);
+        return bundles.get(id);
     }
 
     @Override
-    @JsonIgnore
     public List<String> getComponentIds() {
         List<String> componentsIds = new ArrayList<>();
         componentsIds.addAll(components2Bundles.keySet());
@@ -330,7 +343,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public List<String> getServiceIds() {
         List<String> serviceIds = new ArrayList<>();
         serviceIds.addAll(services2Components.keySet());
@@ -339,7 +351,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public List<String> getExtensionPointIds() {
         List<String> epIds = new ArrayList<>();
         epIds.addAll(extensionPoints.keySet());
@@ -348,13 +359,11 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public ExtensionPointInfo getExtensionPoint(String id) {
         return extensionPoints.get(id);
     }
 
     @Override
-    @JsonIgnore
     public List<String> getContributionIds() {
         List<String> contribIds = new ArrayList<>();
         contribIds.addAll(contributions.keySet());
@@ -363,7 +372,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public List<ExtensionInfo> getContributions() {
         List<ExtensionInfo> contribs = new ArrayList<>();
         contribs.addAll(contributions.values());
@@ -399,25 +407,21 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public String getKey() {
         return getName() + "-" + getVersion();
     }
 
     @Override
-    @JsonIgnore
     public List<Class<?>> getSpi() {
         return spi;
     }
 
     @Override
-    @JsonIgnore
     public String getId() {
         return getKey();
     }
 
     @Override
-    @JsonIgnore
     public String getArtifactType() {
         return TYPE_NAME;
     }
@@ -438,13 +442,11 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public List<String> getJavaComponentIds() {
         return javaComponentsIds;
     }
 
     @Override
-    @JsonIgnore
     public List<String> getXmlComponentIds() {
         List<String> result = new ArrayList<>();
 
@@ -462,19 +464,16 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public Date getReleaseDate() {
-        return null;
+        return released;
     }
 
     @Override
-    @JsonIgnore
     public boolean isLive() {
         return true;
     }
 
     @Override
-    @JsonIgnore
     public String getHierarchyPath() {
         return null;
     }
@@ -488,14 +487,17 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
             return;
         }
         OperationType[] ops = service.getOperations();
-        for (OperationType op : ops) {
+        // make sure operations are ordered, as service currently returns any order
+        List<OperationType> oops = Arrays.asList(ops);
+        Collections.sort(oops, Comparator.comparing(OperationType::getId));
+        for (OperationType op : oops) {
             OperationDocumentation documentation;
             try {
                 documentation = op.getDocumentation();
             } catch (OperationException e) {
                 throw new NuxeoException(e);
             }
-            operations.add(new OperationInfoImpl(documentation, getVersion(), op.getType().getCanonicalName(),
+            this.operations.add(new OperationInfoImpl(documentation, getVersion(), op.getType().getCanonicalName(),
                     op.getContributingComponent()));
         }
         opsInitialized = true;
@@ -540,27 +542,21 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     }
 
     @Override
-    @JsonIgnore
     public boolean isLatestFT() {
         return false;
     }
 
     @Override
-    @JsonIgnore
     public boolean isLatestLTS() {
         return false;
     }
 
-    final List<String> aliases = new LinkedList<>(Collections.singletonList("current"));
-
     @Override
-    @JsonIgnore
     public List<String> getAliases() {
         return aliases;
     }
 
     @Override
-    @JsonIgnore
     public boolean isHidden() {
         return false;
     }
@@ -572,26 +568,37 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     @Override
     public ObjectMapper getJsonMapper() {
         ObjectMapper mapper = DistributionSnapshot.jsonMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         for (Plugin<?> plugin : getPlugins()) {
-            mapper = plugin.getJsonMapper(mapper);
+            plugin.enrishJsonMapper(mapper);
         }
         return mapper;
     }
 
     @Override
-    public ObjectWriter getJsonWriter() {
-        return getJsonMapper().writerFor(DistributionSnapshot.class)
-                              .withoutRootName()
-                              .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
-                              .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    public void writeJson(OutputStream out) {
+        ObjectWriter writer = getJsonMapper().writerFor(DistributionSnapshot.class)
+                                             .withoutRootName()
+                                             .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
+                                             .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+        try {
+            writer.writeValue(out, this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public ObjectReader getJsonReader() {
-        return getJsonMapper().readerFor(DistributionSnapshot.class)
-                              .withoutRootName()
-                              .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
-                              .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
+    public DistributionSnapshot readJson(InputStream in) {
+        ObjectReader reader = getJsonMapper().readerFor(DistributionSnapshot.class)
+                                             .withoutRootName()
+                                             .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
+                                             .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
+        try {
+            return reader.readValue(in);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected void initPluginSnapshots() {
@@ -606,6 +613,11 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     public Map<String, PluginSnapshot<?>> getPluginSnapshots() {
         initPluginSnapshots();
         return Collections.unmodifiableMap(pluginSnapshots);
+    }
+
+    @Override
+    public List<BundleInfo> getBundles() {
+        return Collections.unmodifiableList(new ArrayList<>(bundles.values()));
     }
 
 }

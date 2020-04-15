@@ -24,8 +24,11 @@ import java.util.Map;
 
 import org.nuxeo.apidoc.documentation.ResourceDocumentationItem;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
+//@JsonIdentityInfo(generator = ObjectIdGenerators.StringIdGenerator.class)
 public interface BundleInfo extends NuxeoArtifact {
 
     String TYPE_NAME = "NXBundle";
@@ -45,7 +48,7 @@ public interface BundleInfo extends NuxeoArtifact {
      */
     String RUNTIME_CONFIG_BUNDLE = "org.nuxeo.ecm.config";
 
-    @JsonIgnore
+    @JsonManagedReference("bundle")
     Collection<ComponentInfo> getComponents();
 
     String getFileName();

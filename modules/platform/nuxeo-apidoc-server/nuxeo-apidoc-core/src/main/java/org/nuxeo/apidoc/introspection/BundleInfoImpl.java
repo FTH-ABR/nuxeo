@@ -19,9 +19,11 @@
  */
 package org.nuxeo.apidoc.introspection;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.nuxeo.apidoc.api.BaseNuxeoArtifact;
@@ -33,14 +35,13 @@ import org.nuxeo.apidoc.documentation.ResourceDocumentationItem;
 import org.nuxeo.ecm.core.api.CoreSession;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
 
     protected final String bundleId;
 
-    protected final Collection<ComponentInfo> components = new HashSet<>();
+    protected final List<ComponentInfo> components = new ArrayList<>();
 
     protected String fileName;
 
@@ -61,7 +62,7 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
     protected Map<String, ResourceDocumentationItem> parentLiveDoc;
 
     @JsonCreator
-    BundleInfoImpl(@JsonProperty("bundleId") String bundleId, @JsonProperty("fileName") String fileName,
+    private BundleInfoImpl(@JsonProperty("bundleId") String bundleId, @JsonProperty("fileName") String fileName,
             @JsonProperty("manifest") String manifest, @JsonProperty("requirements") String[] requirements,
             @JsonProperty("groupId") String groupId, @JsonProperty("artifactId") String artifactId,
             @JsonProperty("artifactVersion") String artifactVersion,
@@ -98,7 +99,7 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
 
     @Override
     public Collection<ComponentInfo> getComponents() {
-        return components;
+        return Collections.unmodifiableCollection(components);
     }
 
     public void addComponent(ComponentInfoImpl component) {
@@ -174,27 +175,23 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
     }
 
     @Override
-    @JsonIgnore
     public String getId() {
         return bundleId;
     }
 
     @Override
-    @JsonIgnore
     public String getVersion() {
         return artifactVersion;
     }
 
     @Override
-    @JsonIgnore
     public String getArtifactType() {
         return TYPE_NAME;
     }
 
     @Override
-    @JsonIgnore
     public String getHierarchyPath() {
-        return bundleGroup.getHierarchyPath() + "/" + getId();
+        return getBundleGroup().getHierarchyPath() + "/" + getId();
     }
 
     public void setLiveDoc(Map<String, ResourceDocumentationItem> liveDoc) {

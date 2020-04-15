@@ -18,6 +18,12 @@
  */
 package org.nuxeo.apidoc.api;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
+//@JsonIdentityInfo(generator = ObjectIdGenerators.StringIdGenerator.class)
 public interface ServiceInfo extends NuxeoArtifact {
 
     String TYPE_NAME = "NXService";
@@ -27,6 +33,17 @@ public interface ServiceInfo extends NuxeoArtifact {
     String PROP_COMPONENT_ID = "nxservice:componentId";
 
     String PROP_OVERRIDEN = "nxservice:overriden";
+
+    /**
+     * Returns the associated component.
+     * <p>
+     * Useful for json serialization.
+     *
+     * @since 11.1
+     */
+    //@JsonIdentityReference
+    @JsonBackReference("service")
+    ComponentInfo getComponent();
 
     String getComponentId();
 

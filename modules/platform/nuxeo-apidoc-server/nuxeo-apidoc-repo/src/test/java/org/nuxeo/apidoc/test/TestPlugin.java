@@ -107,8 +107,9 @@ public class TestPlugin {
 
         // write to output stream
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        snapshot.getJsonWriter().writeValue(out, snapshot);
+        snapshot.writeJson(out);
 
+        // XXX
         try (OutputStream file = Files.newOutputStream(Paths.get(FeaturesRunner.getBuildDirectory() + "/test.json"),
                 StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             file.write(out.toByteArray());
@@ -116,7 +117,28 @@ public class TestPlugin {
 
         // read back and explore plugin resources again
         ByteArrayInputStream source = new ByteArrayInputStream(out.toByteArray());
-        DistributionSnapshot rsnap = snapshot.getJsonReader().readValue(source);
+        DistributionSnapshot rsnap = snapshot.readJson(source);
+
+        PluginSnapshot<?> psnap = rsnap.getPluginSnapshots().get(FakePlugin.ID);
+        assertNotNull(psnap);
+        assertTrue(psnap instanceof FakePluginRuntimeSnapshot);
+        checkPluginRuntimeSnapshot(rsnap, (FakePluginRuntimeSnapshot) psnap);
+    }
+
+    /**
+     * Test a legacy NuxeoArtifact an still be resolved thanks to this old-exported json, that can also serve a
+     * json-comaptibility test for the whole json, not only with plugins.
+     */
+    @Test
+    public void testPluginJsonLegacy() throws JsonGenerationException, JsonMappingException, IOException {
+        String export = TestSnapshotPersist.getReferenceContent(
+                TestSnapshotPersist.getReferencePath("plugin-test-export.json"));
+
+        // read back and explore plugin resources again
+        ByteArrayInputStream source = new ByteArrayInputStream(export.getBytes());
+        // retrieve current snapshot just to get the reader...
+        DistributionSnapshot snapshot = snapshotManager.getRuntimeSnapshot();
+        DistributionSnapshot rsnap = snapshot.readJson(source);
 
         PluginSnapshot<?> psnap = rsnap.getPluginSnapshots().get(FakePlugin.ID);
         assertNotNull(psnap);
