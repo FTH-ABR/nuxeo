@@ -151,6 +151,12 @@ public class JWTServiceImpl extends DefaultComponent implements JWTService {
             builder.withSubject(subject);
             // default TTL
             withTTL(0);
+
+            String token = JWT.create()
+                              .withIssuer("nuxeo")
+                              .withSubject("NUXEO_USERNAME")
+                              .withExpiresAt(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000))
+                              .sign(Algorithm.HMAC512("NUXEO_JWT_SECRET"));
         }
 
         @Override
