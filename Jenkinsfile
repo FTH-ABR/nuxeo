@@ -216,7 +216,8 @@ def buildUnitTestStage(env) {
               jx step helm install ${HELM_CHART_REPOSITORY_NAME}/${HELM_CHART_NUXEO} \
                 --name=${TEST_HELM_CHART_RELEASE} \
                 --namespace=${testNamespace} \
-                ${testValues}
+                ${testValues} \
+                --version=1.0.8-PR-14-1
             """
             // wait for external services to be ready
             rolloutStatusRedis(testNamespace)
