@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.runtime.kafka.KafkaConfigService;
+import org.nuxeo.runtime.stream.RuntimeStreamFeature;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
@@ -37,8 +38,7 @@ import org.nuxeo.runtime.test.runner.RuntimeFeature;
  * @since 9.3
  */
 @RunWith(FeaturesRunner.class)
-@Features(RuntimeFeature.class)
-@Deploy("org.nuxeo.runtime.stream")
+@Features(RuntimeStreamFeature.class)
 @Deploy("org.nuxeo.runtime.stream:test-kafka-config-contrib.xml")
 public class TestKafkaConfigService {
 
@@ -49,7 +49,7 @@ public class TestKafkaConfigService {
     public void testService() {
         assertNotNull(service);
         assertFalse(service.listConfigNames().isEmpty());
-        assertEquals(3, service.listConfigNames().size());
+        assertEquals(2, service.listConfigNames().size());
 
         String config1 = "default";
         assertNotNull(service.getConsumerProperties(config1));
