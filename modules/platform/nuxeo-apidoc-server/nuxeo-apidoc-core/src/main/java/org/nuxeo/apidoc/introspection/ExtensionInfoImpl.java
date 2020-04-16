@@ -56,22 +56,23 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
 
     protected Object[] contribution;
 
-    public ExtensionInfoImpl(ComponentInfo component, String xpoint, int index) {
-        String idd = component.getId() + "--" + xpoint;
+    public ExtensionInfoImpl(ComponentInfo component, String extensionPoint, int index) {
+        String id = component.getId() + "--" + extensionPoint;
         if (index > 0) {
-            idd += index;
+            id += index;
         }
-        id = idd;
+        this.id = id;
         this.component = component;
-        extensionPoint = xpoint;
+        this.extensionPoint = extensionPoint;
     }
 
     @JsonCreator
-    private ExtensionInfoImpl(@JsonProperty("component") ComponentInfo component,
-            @JsonProperty("extensionPoint") String xpoint, @JsonProperty("index") int index,
+    private ExtensionInfoImpl(@JsonProperty("id") String id, @JsonProperty("extensionPoint") String extensionPoint,
             @JsonProperty("documentation") String documentation, @JsonProperty("xml") String xml,
             @JsonProperty("targetComponentName") ComponentName targetComponentName) {
-        this(component, xpoint, index);
+        this.id = id;
+        this.component = null; // will be handled by json back reference
+        this.extensionPoint = extensionPoint;
         this.documentation = documentation;
         this.xml = xml;
         this.targetComponentName = targetComponentName;

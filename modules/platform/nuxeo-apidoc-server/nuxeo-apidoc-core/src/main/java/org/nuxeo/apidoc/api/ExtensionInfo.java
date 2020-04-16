@@ -26,7 +26,6 @@ import org.nuxeo.runtime.model.ComponentName;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
-//@JsonIdentityInfo(generator = ObjectIdGenerators.StringIdGenerator.class)
 public interface ExtensionInfo extends NuxeoArtifact {
 
     String TYPE_NAME = "NXContribution";
@@ -51,7 +50,6 @@ public interface ExtensionInfo extends NuxeoArtifact {
 
     List<ContributionItem> getContributionItems();
 
-    // @JsonIdentityReference
     @JsonBackReference("extension")
     ComponentInfo getComponent();
 

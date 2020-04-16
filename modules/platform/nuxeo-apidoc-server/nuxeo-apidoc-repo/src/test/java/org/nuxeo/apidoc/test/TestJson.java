@@ -34,6 +34,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.apidoc.api.BundleInfo;
 import org.nuxeo.apidoc.api.ComponentInfo;
+import org.nuxeo.apidoc.api.ExtensionPointInfo;
+import org.nuxeo.apidoc.api.ServiceInfo;
 import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.snapshot.DistributionSnapshot;
 import org.nuxeo.apidoc.snapshot.SnapshotManager;
@@ -90,11 +92,11 @@ public class TestJson {
      */
     @Test
     public void canReadLegacy() throws IOException {
-        RuntimeSnapshot snap = RuntimeSnapshot.build();
+        RuntimeSnapshot runtimeSnapshot = RuntimeSnapshot.build();
         String export = TestSnapshotPersist.getReferenceContent(
                 TestSnapshotPersist.getReferencePath("test-export.json"));
         try (ByteArrayInputStream source = new ByteArrayInputStream(export.getBytes())) {
-            DistributionSnapshot snapshot = snap.readJson(source);
+            DistributionSnapshot snapshot = runtimeSnapshot.readJson(source);
             assertNotNull(snapshot);
 
             BundleInfo bundle = snapshot.getBundle("org.nuxeo.apidoc.repo");
@@ -125,9 +127,36 @@ public class TestJson {
             // retrieve one sample of each contribution
             Collection<ComponentInfo> components = bundle.getComponents();
             assertNotNull(components);
+            assertEquals(9, components.size());
+            ComponentInfo smcomp = snapshot.getComponent("org.nuxeo.apidoc.snapshot.SnapshotManagerComponent");
+            assertNotNull(smcomp);
+            // check managed reference
+            assertNotNull(smcomp.getBundle());
+            assertEquals("org.nuxeo.apidoc.repo", smcomp.getBundle().getId());
+            // check services
+            assertNotNull(smcomp.getServices());
+            assertEquals(1, smcomp.getServices().size());
+            ServiceInfo service = smcomp.getServices().get(0);
+            // check managed reference
+            assertNotNull(smcomp.getBundle());
+            // check extension points
+            assertNotNull(smcomp.getExtensionPoints());
+            assertEquals(1, smcomp.getExtensionPoints().size());
+            ExtensionPointInfo xp = smcomp.getExtensionPoints().iterator().next();
+            // check managed reference
+            assertNotNull(smcomp.getBundle());
+            // check extensions
+            assertNotNull(smcomp.getExtensions());
+            assertEquals(0, smcomp.getExtensions().size());
 
-            // FIXME: components export is broken
-            assertEquals(0, components.size());
+            // check another component with contributions
+            ComponentInfo smcont = snapshot.getComponent("org.nuxeo.apidoc.doctypeContrib");
+            assertNotNull(smcont);
+            // check extensions
+            assertNotNull(smcont.getExtensions());
+            assertEquals(1, smcont.getExtensions().size());
+            // check managed reference
+            assertNotNull(smcomp.getBundle());
 
         }
     }

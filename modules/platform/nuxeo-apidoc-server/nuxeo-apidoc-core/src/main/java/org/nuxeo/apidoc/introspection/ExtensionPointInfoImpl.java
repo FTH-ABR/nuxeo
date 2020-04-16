@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.checkerframework.common.reflection.qual.GetConstructor;
 import org.nuxeo.apidoc.api.BaseNuxeoArtifact;
 import org.nuxeo.apidoc.api.ComponentInfo;
 import org.nuxeo.apidoc.api.ExtensionInfo;
@@ -31,14 +30,14 @@ import org.nuxeo.apidoc.api.ExtensionPointInfo;
 import org.nuxeo.apidoc.api.VirtualNodesConsts;
 import org.nuxeo.apidoc.documentation.DocumentationHelper;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements ExtensionPointInfo {
 
-    @JsonBackReference("extensionpoint")
     protected final ComponentInfo component;
+
+    protected final String componentId;
 
     protected final String name;
 
@@ -51,18 +50,17 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
     protected String documentation;
 
     public ExtensionPointInfoImpl(ComponentInfoImpl component, String name) {
-        this.name = name;
         this.component = component;
+        this.componentId = component.getId();
+        this.name = name;
     }
 
     @JsonCreator
-    private ExtensionPointInfoImpl(@JsonProperty("component") ComponentInfo component,
-            @JsonProperty("name") String name, @JsonProperty("extensions") Collection<ExtensionInfo> extensions,
+    private ExtensionPointInfoImpl(@JsonProperty("componentId") String componentId, @JsonProperty("name") String name,
+            @JsonProperty("extensions") Collection<ExtensionInfo> extensions,
             @JsonProperty("descriptors") String[] descriptors, @JsonProperty("documentation") String documentation) {
-        this.component = component;
-        if (component == null) {
-            System.err.println("comp is null");
-        }
+        this.component = null; // will be handled by json back reference
+        this.componentId = componentId; // kept here to ensure id resolution during json deserialization
         this.name = name;
         if (extensions != null) {
             this.extensions.addAll(extensions);
@@ -78,7 +76,7 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     @Override
     public String getComponentId() {
-        return component.getId();
+        return componentId;
     }
 
     @Override
@@ -124,9 +122,7 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     @Override
     public String getId() {
-        // FIXME: this messes with the back reference
-        //return getComponentId() + "--" + getName();
-        return getName();
+        return getComponentId() + "--" + getName();
     }
 
     @Override
