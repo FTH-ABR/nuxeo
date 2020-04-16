@@ -83,7 +83,7 @@ String getDockerTagFrom(String version) {
 
 void runFunctionalTests(String baseDir) {
   try {
-    sh "mvn ${MAVEN_ARGS} -f ${baseDir}/pom.xml verify"
+    sh "mvn ${MAVEN_ARGS} -X -f ${baseDir}/pom.xml verify"
   } finally {
     try {
       archiveArtifacts allowEmptyArchive: true, artifacts: "${baseDir}/**/target/failsafe-reports/*, ${baseDir}/**/target/**/*.log, ${baseDir}/**/target/*.png, ${baseDir}/**/target/**/distribution.properties, ${baseDir}/**/target/**/configuration.properties"
@@ -368,6 +368,11 @@ pipeline {
     }
 
     stage('Run runtime unit tests') {
+      when {
+        expression {
+          return false
+        }
+      }
       steps {
         setGitHubBuildStatus('platform/utests/runtime/dev', 'Unit tests - runtime', 'PENDING')
         container('maven') {
@@ -389,18 +394,6 @@ pipeline {
         }
         failure {
           setGitHubBuildStatus('platform/utests/runtime/dev', 'Unit tests - runtime', 'FAILURE')
-        }
-      }
-    }
-
-    stage('Run unit tests') {
-      steps {
-        script {
-          def stages = [:]
-          for (env in testEnvironments) {
-            stages["Run ${env} unit tests"] = buildUnitTestStage(env);
-          }
-          parallel stages
         }
       }
     }
@@ -435,6 +428,7 @@ pipeline {
           ----------------------------------------
           Run "dev" functional tests
           ----------------------------------------"""
+
           runFunctionalTests('ftests')
         }
       }
@@ -453,6 +447,11 @@ pipeline {
     }
 
     stage('Build Docker images') {
+      when {
+        expression {
+          return false
+        }
+      }
       steps {
         setGitHubBuildStatus('platform/docker/build', 'Build Docker images', 'PENDING')
         container('maven') {
@@ -479,6 +478,11 @@ pipeline {
     }
 
     stage('Test Docker images') {
+      when {
+        expression {
+          return false
+        }
+      }
       steps {
         setGitHubBuildStatus('platform/docker/test', 'Test Docker images', 'PENDING')
         container('maven') {
@@ -530,6 +534,23 @@ pipeline {
       }
     }
 
+    stage('Run unit tests') {
+      when {
+        expression {
+          return false
+        }
+      }
+      steps {
+        script {
+          def stages = [:]
+          for (env in testEnvironments) {
+            stages["Run ${env} unit tests"] = buildUnitTestStage(env);
+          }
+          parallel stages
+        }
+      }
+    }
+
     stage('Git tag and push') {
       when {
         not {
@@ -558,8 +579,8 @@ pipeline {
 
     stage('Deploy Docker images') {
       when {
-        not {
-          branch 'PR-*'
+        expression {
+          return false
         }
       }
       steps {
@@ -587,6 +608,11 @@ pipeline {
     }
 
     stage('Deploy Maven artifacts') {
+      when {
+        expression {
+          return false
+        }
+      }
       steps {
         setGitHubBuildStatus('platform/deploy', 'Deploy Maven artifacts', 'PENDING')
         container('maven') {
@@ -609,11 +635,8 @@ pipeline {
 
     stage('Upload Nuxeo Packages') {
       when {
-        not {
-          expression {
-             // only run Upload Nuxeo Packages in jenkins production
-             return JENKINS_URL =~ 'platform-staging'
-          }
+        expression {
+          return false
         }
       }
       steps {
