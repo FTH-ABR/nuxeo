@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -90,7 +91,7 @@ public class TestJson {
             }
             try (ByteArrayInputStream source = new ByteArrayInputStream(sink.toByteArray())) {
                 DistributionSnapshot snapshot = snap.readJson(source);
-                checkSnapshot(snapshot);
+                checkSnapshot(snapshot, false);
             }
         }
     }
@@ -107,11 +108,11 @@ public class TestJson {
                 TestSnapshotPersist.getReferencePath("test-export.json"));
         try (ByteArrayInputStream source = new ByteArrayInputStream(export.getBytes())) {
             DistributionSnapshot snapshot = runtimeSnapshot.readJson(source);
-            checkSnapshot(snapshot);
+            checkSnapshot(snapshot, true);
         }
     }
 
-    protected void checkSnapshot(DistributionSnapshot snapshot) throws IOException {
+    protected void checkSnapshot(DistributionSnapshot snapshot, boolean legacy) throws IOException {
         assertNotNull(snapshot);
         assertEquals("Nuxeo", snapshot.getName());
         assertEquals("unknown", snapshot.getVersion());
@@ -122,7 +123,16 @@ public class TestJson {
         assertNotNull(bundle);
         assertEquals("nuxeo-apidoc-repo", bundle.getArtifactId());
         assertEquals(BundleInfo.TYPE_NAME, bundle.getArtifactType());
-        assertEquals("11.1-SNAPSHOT", bundle.getArtifactVersion());
+
+        String version = "11.1-SNAPSHOT";
+        if (legacy) {
+            assertEquals(version, bundle.getArtifactVersion());
+        } else {
+            version = bundle.getArtifactVersion();
+            assertNotNull(version);
+            assertTrue(version.length() > 0);
+        }
+
         assertEquals("org.nuxeo.apidoc.repo", bundle.getBundleId());
         assertEquals("org.nuxeo.ecm.platform", bundle.getGroupId());
         assertEquals("/grp:org.nuxeo.ecm.platform/org.nuxeo.apidoc.repo", bundle.getHierarchyPath());
@@ -144,7 +154,7 @@ public class TestJson {
                 + "", bundle.getManifest());
         assertNull(bundle.getParentLiveDoc());
         assertNull(bundle.getRequirements());
-        assertEquals("11.1-SNAPSHOT", bundle.getVersion());
+        assertEquals(version, bundle.getVersion());
 
         // check components
         List<ComponentInfo> components = bundle.getComponents();
@@ -161,7 +171,7 @@ public class TestJson {
                 smcomp.getHierarchyPath());
         assertEquals("org.nuxeo.apidoc.snapshot.SnapshotManagerComponent", smcomp.getId());
         assertEquals("org.nuxeo.apidoc.snapshot.SnapshotManagerComponent", smcomp.getName());
-        assertEquals("11.1-SNAPSHOT", smcomp.getVersion());
+        assertEquals(version, smcomp.getVersion());
         assertFalse(smcomp.isXmlPureComponent());
         String xml = "<?xml version=\"1.0\"?>\n" //
                 + "<component name=\"org.nuxeo.apidoc.snapshot.SnapshotManagerComponent\">\n" //
@@ -224,7 +234,7 @@ public class TestJson {
                 "/grp:org.nuxeo.ecm.platform/org.nuxeo.apidoc.repo/org.nuxeo.apidoc.snapshot.SnapshotManagerComponent/Services/org.nuxeo.apidoc.snapshot.SnapshotManager",
                 service.getHierarchyPath());
         assertEquals("org.nuxeo.apidoc.snapshot.SnapshotManager", service.getId());
-        assertEquals("11.1-SNAPSHOT", service.getVersion());
+        assertEquals(version, service.getVersion());
         assertFalse(service.isOverriden());
         // check json back reference
         assertNotNull(service.getComponent());
@@ -243,7 +253,7 @@ public class TestJson {
         assertEquals("org.nuxeo.apidoc.snapshot.SnapshotManagerComponent--plugins", xp.getId());
         assertEquals("plugins (org.nuxeo.apidoc.snapshot.SnapshotManagerComponent)", xp.getLabel());
         assertEquals("plugins", xp.getName());
-        assertEquals("11.1-SNAPSHOT", xp.getVersion());
+        assertEquals(version, xp.getVersion());
         assertNotNull(xp.getDescriptors());
         assertEquals(1, xp.getDescriptors().length);
         assertEquals("org.nuxeo.apidoc.plugin.PluginDescriptor", xp.getDescriptors()[0]);
@@ -272,7 +282,7 @@ public class TestJson {
                 "/grp:org.nuxeo.ecm.platform/org.nuxeo.apidoc.repo/org.nuxeo.apidoc.doctypeContrib/Contributions/org.nuxeo.apidoc.doctypeContrib--doctype",
                 ext.getHierarchyPath());
         assertEquals(new ComponentName("service:org.nuxeo.ecm.core.schema.TypeService"), ext.getTargetComponentName());
-        assertEquals("11.1-SNAPSHOT", ext.getVersion());
+        assertEquals(version, ext.getVersion());
         // check json back reference
         assertNotNull(ext.getComponent());
 
