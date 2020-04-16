@@ -19,7 +19,7 @@
  */
 package org.nuxeo.apidoc.api;
 
-import java.util.Collection;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -47,7 +47,7 @@ public interface ExtensionPointInfo extends NuxeoArtifact {
     String[] getDescriptors();
 
     @JsonIgnore
-    Collection<ExtensionInfo> getExtensions();
+    List<ExtensionInfo> getExtensions();
 
     String getDocumentation();
 

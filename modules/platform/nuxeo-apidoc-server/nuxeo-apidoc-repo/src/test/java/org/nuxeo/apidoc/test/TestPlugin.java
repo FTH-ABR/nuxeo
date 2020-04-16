@@ -27,10 +27,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -109,12 +105,6 @@ public class TestPlugin {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         snapshot.writeJson(out);
 
-        // FIXME
-        try (OutputStream file = Files.newOutputStream(Paths.get(FeaturesRunner.getBuildDirectory() + "/test.json"),
-                StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
-            file.write(out.toByteArray());
-        }
-
         // read back and explore plugin resources again
         ByteArrayInputStream source = new ByteArrayInputStream(out.toByteArray());
         DistributionSnapshot rsnap = snapshot.readJson(source);
@@ -125,10 +115,6 @@ public class TestPlugin {
         checkPluginRuntimeSnapshot(rsnap, (FakePluginRuntimeSnapshot) psnap);
     }
 
-    /**
-     * Test a legacy NuxeoArtifact an still be resolved thanks to this old-exported json, that can also serve a
-     * json-comaptibility test for the whole json, not only with plugins.
-     */
     @Test
     public void testPluginJsonLegacy() throws JsonGenerationException, JsonMappingException, IOException {
         String export = TestSnapshotPersist.getReferenceContent(

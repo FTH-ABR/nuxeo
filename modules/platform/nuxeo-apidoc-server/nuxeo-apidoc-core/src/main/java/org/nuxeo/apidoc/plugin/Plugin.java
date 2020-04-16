@@ -83,7 +83,9 @@ public interface Plugin<T extends NuxeoArtifact> {
     void enrishJsonMapper(ObjectMapper parent);
 
     /**
-     * XXX
+     * Returns the plugin snapshot class, needed for json deserialization.
+     *
+     * @since 11.1
      */
     String getPluginSnapshotClass();
 

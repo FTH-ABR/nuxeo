@@ -88,11 +88,6 @@ public class TestDistributionResolver {
                 }
 
                 @Override
-                public List<Class<?>> getSpi() {
-                    return null;
-                }
-
-                @Override
                 public List<String> getServiceIds() {
                     return null;
                 }

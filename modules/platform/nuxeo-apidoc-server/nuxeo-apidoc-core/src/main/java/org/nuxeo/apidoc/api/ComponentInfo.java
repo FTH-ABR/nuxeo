@@ -21,7 +21,6 @@ package org.nuxeo.apidoc.api;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -54,12 +53,10 @@ public interface ComponentInfo extends NuxeoArtifact {
     BundleInfo getBundle();
 
     @JsonManagedReference("extensionpoint")
-    Collection<ExtensionPointInfo> getExtensionPoints();
+    List<ExtensionPointInfo> getExtensionPoints();
 
     @JsonManagedReference("extension")
-    Collection<ExtensionInfo> getExtensions();
-
-    ExtensionPointInfo getExtensionPoint(String name);
+    List<ExtensionInfo> getExtensions();
 
     String getDocumentation();
 

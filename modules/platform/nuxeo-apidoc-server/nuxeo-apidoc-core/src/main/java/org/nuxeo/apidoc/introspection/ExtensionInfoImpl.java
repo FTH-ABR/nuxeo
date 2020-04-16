@@ -72,6 +72,9 @@ public class ExtensionInfoImpl extends BaseNuxeoArtifact implements ExtensionInf
             @JsonProperty("targetComponentName") ComponentName targetComponentName) {
         this.id = id;
         this.component = null; // will be handled by json back reference
+        if (extensionPoint != null) {
+            extensionPoint = extensionPoint.substring(extensionPoint.lastIndexOf("--") + 2);
+        }
         this.extensionPoint = extensionPoint;
         this.documentation = documentation;
         this.xml = xml;

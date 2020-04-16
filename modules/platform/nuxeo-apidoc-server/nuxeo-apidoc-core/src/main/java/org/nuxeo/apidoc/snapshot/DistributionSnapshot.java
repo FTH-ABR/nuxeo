@@ -37,6 +37,7 @@ import org.nuxeo.apidoc.introspection.BundleGroupImpl;
 import org.nuxeo.apidoc.introspection.BundleInfoImpl;
 import org.nuxeo.apidoc.introspection.ComponentInfoImpl;
 import org.nuxeo.apidoc.introspection.ExtensionInfoImpl;
+import org.nuxeo.apidoc.introspection.ExtensionPointInfoImpl;
 import org.nuxeo.apidoc.introspection.OperationInfoImpl;
 import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.introspection.ServiceInfoImpl;
@@ -149,8 +150,6 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
 
     List<String> getBundleGroupChildren(String groupId);
 
-    List<Class<?>> getSpi();
-
     OperationInfo getOperation(String id);
 
     List<OperationInfo> getOperations();
@@ -158,11 +157,13 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
     /**
      * @since 8.3
      */
+    @JsonIgnore
     boolean isLatestFT();
 
     /**
      * @since 8.3
      */
+    @JsonIgnore
     boolean isLatestLTS();
 
     /**
@@ -174,6 +175,7 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
     /**
      * @since 8.3
      */
+    @JsonIgnore
     boolean isHidden();
 
     /**
@@ -221,6 +223,7 @@ public interface DistributionSnapshot extends DistributionSnapshotDesc {
                                   .addAbstractTypeMapping(BundleInfo.class, BundleInfoImpl.class)
                                   .addAbstractTypeMapping(BundleGroup.class, BundleGroupImpl.class)
                                   .addAbstractTypeMapping(ComponentInfo.class, ComponentInfoImpl.class)
+                                  .addAbstractTypeMapping(ExtensionPointInfo.class, ExtensionPointInfoImpl.class)
                                   .addAbstractTypeMapping(ExtensionInfo.class, ExtensionInfoImpl.class)
                                   .addAbstractTypeMapping(OperationInfo.class, OperationInfoImpl.class)
                                   .addAbstractTypeMapping(ServiceInfo.class, ServiceInfoImpl.class)

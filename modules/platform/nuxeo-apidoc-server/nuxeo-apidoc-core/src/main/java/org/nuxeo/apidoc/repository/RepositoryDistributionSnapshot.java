@@ -18,7 +18,6 @@
  */
 package org.nuxeo.apidoc.repository;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -43,8 +42,6 @@ import org.nuxeo.apidoc.api.OperationInfo;
 import org.nuxeo.apidoc.api.QueryHelper;
 import org.nuxeo.apidoc.api.ServiceInfo;
 import org.nuxeo.apidoc.documentation.JavaDocHelper;
-import org.nuxeo.apidoc.introspection.BundleInfoImpl;
-import org.nuxeo.apidoc.introspection.RuntimeSnapshot;
 import org.nuxeo.apidoc.plugin.Plugin;
 import org.nuxeo.apidoc.plugin.PluginSnapshot;
 import org.nuxeo.apidoc.snapshot.DistributionSnapshot;
@@ -59,12 +56,7 @@ import org.nuxeo.ecm.core.api.PropertyException;
 import org.nuxeo.ecm.core.query.sql.NXQL;
 import org.nuxeo.runtime.api.Framework;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.ObjectWriter;
 
 public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter implements DistributionSnapshot {
 
@@ -201,6 +193,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<String> getBundleIds() {
         return getChildren(BundleInfo.class, BundleInfo.TYPE_NAME).stream()
                                                                   .map(NuxeoArtifact::getId)
+                                                                  .sorted()
                                                                   .collect(Collectors.toList());
     }
 
@@ -213,6 +206,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<String> getComponentIds() {
         return getChildren(ComponentInfo.class, ComponentInfo.TYPE_NAME).stream()
                                                                         .map(NuxeoArtifact::getId)
+                                                                        .sorted()
                                                                         .collect(Collectors.toList());
     }
 
@@ -225,6 +219,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<String> getContributionIds() {
         return getChildren(ExtensionInfo.class, ExtensionInfo.TYPE_NAME).stream()
                                                                         .map(NuxeoArtifact::getId)
+                                                                        .sorted()
                                                                         .collect(Collectors.toList());
     }
 
@@ -242,6 +237,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<String> getExtensionPointIds() {
         return getChildren(ExtensionPointInfo.class, ExtensionPointInfo.TYPE_NAME).stream()
                                                                                   .map(NuxeoArtifact::getId)
+                                                                                  .sorted()
                                                                                   .collect(Collectors.toList());
     }
 
@@ -254,6 +250,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<String> getBundleGroupIds() {
         return getChildren(BundleGroup.class, BundleGroup.TYPE_NAME).stream()
                                                                     .map(NuxeoArtifact::getId)
+                                                                    .sorted()
                                                                     .collect(Collectors.toList());
     }
 
@@ -268,7 +265,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
                 ids.addAll(ci.getServiceNames());
             }
         }
-        return new ArrayList<>(ids);
+        return ids.stream().sorted().collect(Collectors.toList());
     }
 
     @Override
@@ -302,11 +299,6 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     }
 
     @Override
-    public List<Class<?>> getSpi() {
-        return null;
-    }
-
-    @Override
     public String getId() {
         return getKey();
     }
@@ -334,6 +326,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
         return getChildren(ComponentInfo.class, ComponentInfo.TYPE_NAME).stream()
                                                                         .filter(ci -> !ci.isXmlPureComponent())
                                                                         .map(NuxeoArtifact::getId)
+                                                                        .sorted()
                                                                         .collect(Collectors.toList());
     }
 
@@ -342,6 +335,7 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
         return getChildren(ComponentInfo.class, ComponentInfo.TYPE_NAME).stream()
                                                                         .filter(ComponentInfo::isXmlPureComponent)
                                                                         .map(NuxeoArtifact::getId)
+                                                                        .sorted()
                                                                         .collect(Collectors.toList());
     }
 
@@ -385,11 +379,10 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
     public List<OperationInfo> getOperations() {
         List<OperationInfo> result = new ArrayList<>();
         String query = QueryHelper.select(OperationInfo.TYPE_NAME, getDoc());
-        DocumentModelList docs = getCoreSession().query(query);
+        DocumentModelList docs = getCoreSession().query(query + QueryHelper.ORDER_BY_POS);
         for (DocumentModel doc : docs) {
             result.add(doc.getAdapter(OperationInfo.class));
         }
-        // TODO sort
         return result;
     }
 
@@ -454,60 +447,17 @@ public class RepositoryDistributionSnapshot extends BaseNuxeoArtifactDocAdapter 
 
     @Override
     public ObjectMapper getJsonMapper() {
-        ObjectMapper mapper = DistributionSnapshot.jsonMapper();
-        for (Plugin<?> plugin : getPlugins()) {
-            plugin.enrishJsonMapper(mapper);
-        }
-        return mapper;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void writeJson(OutputStream out) {
-        ObjectWriter writer = getJsonMapper().writerFor(DistributionSnapshot.class)
-                                             .withoutRootName()
-                                             .with(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
-                                             .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-        // build runtime snapshot to be able to serialize it, also converting bundles to BundleInfoImpl
-        List<String> bundleIds = getBundleIds();
-        List<BundleInfo> convertedBundles = new ArrayList<>();
-        if (bundleIds != null) {
-            bundleIds.forEach(bundleId -> {
-                BundleInfo bundle = getBundle(bundleId);
-                BundleInfoImpl newBundle = new BundleInfoImpl(bundle.getId());
-                newBundle.setArtifactId(bundle.getArtifactId());
-                newBundle.setArtifactVersion(bundle.getArtifactVersion());
-                newBundle.setBundleGroup(null); // no bundle group on repo items
-                newBundle.setFileName(bundle.getFileName());
-                newBundle.setGroupId(bundle.getGroupId());
-                newBundle.setLiveDoc(bundle.getLiveDoc());
-                newBundle.setLocation(bundle.getLocation());
-                newBundle.setManifest(bundle.getManifest());
-                newBundle.setParentLiveDoc(bundle.getParentLiveDoc());
-                newBundle.setRequirements(bundle.getRequirements());
-                // FIXME: compute components...
-                convertedBundles.add(newBundle);
-            });
-        }
-        RuntimeSnapshot snap = new RuntimeSnapshot(getName(), getVersion(), getCreationDate(), getReleaseDate(),
-                convertedBundles, getSpi(), getOperations(), getPluginSnapshots());
-        try {
-            writer.writeValue(out, snap);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public DistributionSnapshot readJson(InputStream in) {
-        ObjectReader reader = getJsonMapper().readerFor(DistributionSnapshot.class)
-                                             .withoutRootName()
-                                             .without(JsonParser.Feature.AUTO_CLOSE_SOURCE)
-                                             .with(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
-        try {
-            return reader.readValue(in);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override

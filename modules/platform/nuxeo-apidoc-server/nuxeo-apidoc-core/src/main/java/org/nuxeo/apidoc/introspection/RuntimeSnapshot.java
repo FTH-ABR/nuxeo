@@ -101,8 +101,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
 
     protected JavaDocHelper jdocHelper;
 
-    protected final List<Class<?>> spi = new ArrayList<>();
-
     protected boolean pluginSnapshotsInitialized = false;
 
     protected final Map<String, PluginSnapshot<?>> pluginSnapshots = new HashMap<>();
@@ -116,7 +114,7 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     @JsonCreator
     public RuntimeSnapshot(@JsonProperty("name") String name, @JsonProperty("version") String version,
             @JsonProperty("creationDate") Date created, @JsonProperty("releaseDate") Date released,
-            @JsonProperty("bundles") List<BundleInfo> bundles, @JsonProperty("spi") List<Class<?>> spi,
+            @JsonProperty("bundles") List<BundleInfo> bundles,
             @JsonProperty("operations") List<OperationInfo> operations,
             @JsonProperty("pluginSnapshots") Map<String, PluginSnapshot<?>> pluginSnapshots) {
         this.created = created;
@@ -124,9 +122,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         this.name = name;
         this.version = version;
         index(bundles);
-        if (spi != null) {
-            this.spi.addAll(spi);
-        }
         if (operations != null) {
             this.operations.addAll(operations);
         }
@@ -144,7 +139,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         this.name = serverInfo.getName();
         this.version = serverInfo.getVersion();
         index(new ArrayList<>(serverInfo.getBundles()));
-        this.spi.addAll(serverInfo.getAllSpi());
         initOperations();
         initPluginSnapshots();
     }
@@ -308,9 +302,7 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
 
     @Override
     public List<String> getBundleIds() {
-        List<String> bundlesIds = new ArrayList<>(bundles.keySet());
-        Collections.sort(bundlesIds);
-        return bundlesIds;
+        return new ArrayList<>(bundles.keySet());
     }
 
     @Override
@@ -375,7 +367,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     public List<ExtensionInfo> getContributions() {
         List<ExtensionInfo> contribs = new ArrayList<>();
         contribs.addAll(contributions.values());
-        // TODO sort
         return contribs;
     }
 
@@ -409,11 +400,6 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
     @Override
     public String getKey() {
         return getName() + "-" + getVersion();
-    }
-
-    @Override
-    public List<Class<?>> getSpi() {
-        return spi;
     }
 
     @Override
@@ -615,6 +601,7 @@ public class RuntimeSnapshot extends BaseNuxeoArtifact implements DistributionSn
         return Collections.unmodifiableMap(pluginSnapshots);
     }
 
+    @Override
     public List<BundleInfo> getBundles() {
         return Collections.unmodifiableList(new ArrayList<>(bundles.values()));
     }

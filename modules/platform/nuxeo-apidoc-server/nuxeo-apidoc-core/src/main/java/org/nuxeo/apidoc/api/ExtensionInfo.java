@@ -38,6 +38,9 @@ public interface ExtensionInfo extends NuxeoArtifact {
 
     String PROP_TARGET_COMPONENT_NAME = "nxcontribution:targetComponentName";
 
+    /**
+     * Returns a key combining the target component name and the extension point name.
+     */
     String getExtensionPoint();
 
     String getDocumentation();

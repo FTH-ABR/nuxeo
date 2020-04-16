@@ -20,7 +20,6 @@
 package org.nuxeo.apidoc.introspection;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.nuxeo.apidoc.api.BaseNuxeoArtifact;
@@ -41,7 +40,7 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     protected final String name;
 
-    protected final Collection<ExtensionInfo> extensions = new ArrayList<>();
+    protected final List<ExtensionInfo> extensions = new ArrayList<>();
 
     protected final List<Class<?>> spi = new ArrayList<>();
 
@@ -57,14 +56,10 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
 
     @JsonCreator
     private ExtensionPointInfoImpl(@JsonProperty("componentId") String componentId, @JsonProperty("name") String name,
-            @JsonProperty("extensions") Collection<ExtensionInfo> extensions,
             @JsonProperty("descriptors") String[] descriptors, @JsonProperty("documentation") String documentation) {
         this.component = null; // will be handled by json back reference
         this.componentId = componentId; // kept here to ensure id resolution during json deserialization
         this.name = name;
-        if (extensions != null) {
-            this.extensions.addAll(extensions);
-        }
         this.descriptors = descriptors;
         this.documentation = documentation;
     }
@@ -94,7 +89,7 @@ public class ExtensionPointInfoImpl extends BaseNuxeoArtifact implements Extensi
     }
 
     @Override
-    public Collection<ExtensionInfo> getExtensions() {
+    public List<ExtensionInfo> getExtensions() {
         return extensions;
     }
 

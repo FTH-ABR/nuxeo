@@ -20,7 +20,6 @@
 package org.nuxeo.apidoc.introspection;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +44,7 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
 
     protected String fileName;
 
-    protected String manifest; // TODO
+    protected String manifest;
 
     protected String[] requirements;
 
@@ -81,6 +80,7 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
         this.liveDoc = liveDoc;
         this.parentLiveDoc = parentLiveDoc;
         this.location = location;
+        // components will be handled by json managed reference
     }
 
     public BundleGroup getBundleGroup() {
@@ -98,8 +98,8 @@ public class BundleInfoImpl extends BaseNuxeoArtifact implements BundleInfo {
     }
 
     @Override
-    public Collection<ComponentInfo> getComponents() {
-        return Collections.unmodifiableCollection(components);
+    public List<ComponentInfo> getComponents() {
+        return Collections.unmodifiableList(components);
     }
 
     public void addComponent(ComponentInfoImpl component) {
